@@ -4,14 +4,12 @@ using UnityEngine;
 
 public class playerMovement : MonoBehaviour
 {
-    float maxSpeed = 0.5f;
-    float accelaration = 1.02f;
-    float xVel = 0;
-    float yVel = 0;
+    float xVel = 0, yVel = 0;
+    float maxXSpeed = 0.3f;
+    float xAccelFactor = 0.5f;
     float gravity = 0.01f;
-    float jumpStrength = 0.3f;
-    float tapJump = 0.2f;
-    float holdJump =0.008f;
+    float tapJumpHeight = 5;
+    float holdJumpHeight = 10;
     bool isGrounded = true;
 
     // In order to get collision to work properly, the two colliding objects need to have Rigidbody 2D,
@@ -30,27 +28,36 @@ public class playerMovement : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        float xTrans = Input.GetAxis("Horizontal");
-        float yTrans = Input.GetAxis("Jump");
-        float xDiff = xTrans - xVel;
+        // Input variables; note that keyboard inputs do not drop immediately to zero after being released
+        // They instead gradually ramp down over a second or so
+        float xInput = Input.GetAxis("Horizontal");
+        float yInput = Input.GetAxis("Jump");
+        float keyboardBuffer = 0.2f;
 
-        xVel += 0.5f * xDiff;
-        if (yTrans > 0 && isGrounded)
+        // Horizontal movement - acceleration towards the input value, with higher acceleration occurring
+        // when farther away from the target velocity.
+        float xDiff = xInput - xVel;
+        xVel += xAccelFactor * xDiff;
+
+        // Vertical movement - typical gravity, with a jump that can be made taller or shorter based on how
+        // long the jump button is held
+        if (yInput > keyboardBuffer && isGrounded)
         {
-            yVel += tapJump;
+            // Initial push when jumping off the ground
+            yVel += Mathf.Sqrt(2 * gravity * tapJumpHeight);
             isGrounded = false;
         }
-        
-        if (yTrans > 0 && yVel > 0)
+        if (yInput > 1 - keyboardBuffer && yVel > 0)
         {
-            yVel += holdJump;
+            // Higher jump from holding the input
+            yVel += gravity * (1f - tapJumpHeight / holdJumpHeight);
         }
-        
         if (!isGrounded)
         {
+            // Gravity, only applying when in the air
             yVel -= gravity;
         }
 
-        transform.Translate((0.3f*xVel), yVel, 0);
+        transform.Translate(maxXSpeed * xVel, yVel, 0);
     }
 }
